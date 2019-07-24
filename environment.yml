@@ -1,0 +1,16 @@
+channels:
+- conda-forge
+- bioconda
+dependencies:
+- python=3.6
+- click=6.7
+- toml=0.9.4
+- snakemake=4.4.0
+- scipy=1.2.0
+- matplotlib=3.0.3
+- jupyter=1.0.0
+- pip:
+    - pynomo==0.3.1
+    - pyx==0.14.1
+    - colorcet==0.9.1
+    - cmocean==2.0

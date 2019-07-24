@@ -1,0 +1,21 @@
+trace_mutant: T315I
+axitinib_dataset: 0
+asciminib_dataset: 0
+ic50_table: results/tables/ic50.csv
+ic50_mutants:
+  - P223S
+  - G250H
+  - Q252H
+  - Y253H
+  - E255K
+  - E255V
+  - K294E
+  - V299L
+  - T315I
+  - A337V
+  - E355G
+  - F359V
+  - E459K
+  - P465S
+  - V468F
+  - I502L
