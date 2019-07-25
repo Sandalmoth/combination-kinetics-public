@@ -19,3 +19,9 @@ ic50_mutants:
   - P465S
   - V468F
   - I502L
+alltrace_drugb: intermediate/axitinib.toml
+alltrace_druga:
+  - intermediate/imatinib.toml
+  - intermediate/nilotinib.toml
+  - intermediate/dasatinib.toml
+  - intermediate/bosutinib.toml
