@@ -4,16 +4,33 @@ configfile:
 
 rule all:
     input:
-        "intermediate/imatinib-axitinib-e-min.pdf",
-        "intermediate/nilotinib-axitinib-e-min.pdf",
-        "intermediate/dasatinib-axitinib-e-min.pdf",
-        "intermediate/bosutinib-axitinib-e-min.pdf",
-        "intermediate/imatinib-axitinib-e-xauc.pdf",
-        "intermediate/nilotinib-axitinib-e-xauc.pdf",
-        "intermediate/dasatinib-axitinib-e-xauc.pdf",
-        "intermediate/bosutinib-axitinib-e-xauc.pdf",
-        "intermediate/alltrace-e-min.pdf",
-        "intermediate/alltrace-e-xauc.pdf",
+        "results/figures/imatinib-axitinib-e-min.pdf",
+        "results/figures/nilotinib-axitinib-e-min.pdf",
+        "results/figures/dasatinib-axitinib-e-min.pdf",
+        "results/figures/bosutinib-axitinib-e-min.pdf",
+        "results/figures/imatinib-axitinib-e-xauc.pdf",
+        "results/figures/nilotinib-axitinib-e-xauc.pdf",
+        "results/figures/dasatinib-axitinib-e-xauc.pdf",
+        "results/figures/bosutinib-axitinib-e-xauc.pdf",
+        "results/figures/alltrace-e-min.pdf",
+        "results/figures/alltrace-e-xauc.pdf",
+        "results/figures/imatinib-asciminib-ic50.pdf",
+        "results/figures/nilotinib-asciminib-ic50.pdf",
+        "results/figures/dasatinib-asciminib-ic50.pdf",
+        "results/figures/bosutinib-asciminib-ic50.pdf",
+        "results/figures/ponatinib-asciminib-ic50.pdf",
+        "results/figures/ic50-combos.pdf"
+
+
+rule make_empty_table:
+    params:
+        table_path = config["ic50_table"]
+    output:
+        config["ic50_table"]
+    shell:
+        """
+        echo 'drug_a,drug_b,ratio,mutant,method,ic50' > {params.table_path}
+        """
 
 
 # add data from the ic50 csv to tomlfiles with drug pharmacokinetics parameters
@@ -43,7 +60,7 @@ rule generate_figureset:
         "intermediate/{drug_a}.toml",
         "intermediate/{drug_b}.toml"
     output:
-        "intermediate/{drug_a}-{drug_b}-{interaction}-{mode}.pdf"
+        "results/figures/{drug_a}-{drug_b}-{interaction}-{mode}.pdf"
     params:
         mutant = config["trace_mutant"],
         dataset = config["axitinib_dataset"]
@@ -59,14 +76,14 @@ rule generate_figureset:
             {input} \
             {params.mutant} \
             {params.dataset} \
-            -o intermediate/{wildcards.drug_a}-{wildcards.drug_b}-{wildcards.interaction}-{wildcards.mode}
+            -o results/figures/{wildcards.drug_a}-{wildcards.drug_b}-{wildcards.interaction}-{wildcards.mode}
         """
 
         
 rule generate_alltrace:
         # if you've run generate_figureset for these drugs before, the requisite inputs are already present
     output:
-        "intermediate/alltrace-{interaction}-{mode}.pdf"
+        "results/figures/alltrace-{interaction}-{mode}.pdf"
     params:
         mutant = config["trace_mutant"],
         dataset = config["axitinib_dataset"],
@@ -86,3 +103,43 @@ rule generate_alltrace:
                 -t {wildcards.mode} \
                 --save {output} \
         ")
+
+
+rule generate_ic50:
+    input:
+        "intermediate/{drug_a}.toml",
+        "intermediate/{drug_b}.toml",
+        config["ic50_table"]
+    output:
+        "results/figures/{drug_a}-{drug_b}-ic50.pdf"
+    params:
+        mutants = config["ic50_mutants"],
+        dataset = config["asciminib_dataset"],
+        table_path = config["ic50_table"]
+    run:
+        mstr = ' '
+        for m in params.mutants:
+            mstr += ' -m' + m
+        istr = ' '.join(input[:2])
+        print(istr)
+        shell(" \
+            python3 code/reduction.py make \
+                {istr} \
+                {params.dataset} \
+                {mstr} \
+                -o {output} \
+                -c {params.table_path} \
+        ")
+
+
+rule big_table:
+    output:
+        "results/figures/ic50-combos.pdf"
+    params:
+        table_path = config["ic50_table"]
+    shell:
+        """
+        python3 code/reduction.py bigtable \
+            -t {params.table_path} \
+            -o {output}
+        """
