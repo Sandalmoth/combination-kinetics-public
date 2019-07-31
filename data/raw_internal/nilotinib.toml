@@ -1,0 +1,14 @@
+name = "Nilotinib"
+min_dose = 0
+max_dose = 5000
+iso_dose = 2500
+specific_effect_target = 0.1
+ka = 30
+ke = 1.5
+D = 29.67114938388425
+F = 1
+S = 1
+Vd = 0.31
+tau = 0.5
+repeats = 2
+offset = 0.0

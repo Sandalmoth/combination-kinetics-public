@@ -1,0 +1,14 @@
+name = "Ponatinib"
+min_dose = 0
+max_dose = 200
+iso_dose = 100
+specific_effect_target = 0.1
+ka = 11
+ke = 0.76
+D = 48.52961161194679
+F = 1
+S = 1
+Vd = 0.5
+tau = 1.0
+repeats = 1
+offset = 0.0

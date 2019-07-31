@@ -1,0 +1,14 @@
+name = "Bosutinib"
+min_dose = 0
+max_dose = 300
+iso_dose = 150
+specific_effect_target = 0.1
+ka = 10
+ke = 0.71
+F = 1
+S = 1
+Vd = 2.5
+tau = 1.0
+repeats = 1
+offset = 0.0
+D = 7.640017426968486

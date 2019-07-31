@@ -1,0 +1,5 @@
+name = 'Rebastinib'
+
+min_dose = 0
+max_dose = 240
+iso_dose = 120

@@ -1,0 +1,14 @@
+name = "Axitinib"
+min_dose = 0
+max_dose = 400
+iso_dose = 50
+specific_effect_target = 0.95
+ka = 23
+ke = 4.1
+F = 1
+S = 1
+Vd = 0.15
+tau = 1.0
+repeats = 1
+offset = 0.8
+D = 0.02831130556798341

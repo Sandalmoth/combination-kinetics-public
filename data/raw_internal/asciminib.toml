@@ -1,0 +1,14 @@
+name = "Asciminib"
+min_dose = 0
+max_dose = 180
+iso_dose = 90
+specific_effect_target = 0.1
+ka = 27
+ke = 1.6
+F = 1
+S = 1
+Vd = 0.076
+tau = 1.0
+repeats = 1
+offset = 0.0
+D = 144.6842274955604
