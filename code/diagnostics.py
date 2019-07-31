@@ -120,6 +120,8 @@ def main():
 def make(adrug, bdrug, mutant, dataset, outfile):
     """
     create diagnostic plots for given drug parameter files
+    primarily it is a heatmap of the fitness advantage of a mutnat
+    with the concentration of the two drugs as they vary during the day overlayed
     """
 
     # parsing of core variables
@@ -129,6 +131,7 @@ def make(adrug, bdrug, mutant, dataset, outfile):
     # make sure that drug dosing schedules line up
     assert(drug_a['tau']*drug_a['repeats'] == drug_b['tau']*drug_b['repeats'])
 
+    # heatmap parameters
     cell1 = [drug_a['native'][dataset], drug_b['native'][dataset]]
     cell2 = [drug_a[mutant][dataset], drug_b[mutant][dataset]]
 
@@ -241,6 +244,10 @@ def make(adrug, bdrug, mutant, dataset, outfile):
                            arrowprops=dict(width=0.0, headwidth=5.0, headlength=8.0,
                                            facecolor=color))
 
+    # secondary plots showing the effect (either difference or ratio between wt and mut)
+    # over time
+    # d* - difference
+    # r* - ratio
     dvel = 1/(1 + conc_a/cell2[0] + conc_b/cell2[1]) - \
            1/(1 + conc_a/cell1[0] + conc_b/cell1[1])
     dven = 1/(1 + conc_a/cell2[0] + conc_b/cell2[1] + conc_b*conc_a/cell2[0]/cell2[1]) - \
@@ -445,6 +452,7 @@ def optimize_offset(adrug, bdrug, mutant, dataset, interaction_mode, optimizatio
             return np.roll(c, int(offset/(d['tau']*d['repeats'])*T_RESOLUTION))
 
 
+    # simply iterate over a range of offsets and score according to criterion
     for offset in offsets:
         conc_a = get_conc(drug_a)
         conc_b = get_conc(drug_b, offset)
@@ -470,7 +478,7 @@ def optimize_offset(adrug, bdrug, mutant, dataset, interaction_mode, optimizatio
             target_e = simps(rvel, x=t)
             target_n = simps(rven, x=t)
         else:
-            print('Unknown optimization target (use auc | min):', optimization_target)
+            print('Unknown optimization target (use xauc | min):', optimization_target)
 
 
         print(offset, target_e, target_n, sep='\t')
@@ -483,6 +491,8 @@ def optimize_offset(adrug, bdrug, mutant, dataset, interaction_mode, optimizatio
     print(best_offset_e)
     print(best_offset_n)
 
+    # since we scored for either interaction method at the same time,
+    # save only the relevant value
     if interaction_mode == 'e':
         drug_b['offset'] = best_offset_e[0]
     elif interaction_mode == 'n':
@@ -490,6 +500,7 @@ def optimize_offset(adrug, bdrug, mutant, dataset, interaction_mode, optimizatio
     else:
         print('Unknown interaction mode (use e or n):', interaction_mode)
 
+    # write the updated offset to the file
     with open(bdrug, 'w') as out_toml:
         toml.dump(drug_b, out_toml)
 
@@ -506,6 +517,9 @@ def alltrace(adrugs, bdrug, mutant, dataset, interaction_mode, optimization_targ
     """
     interactions between many drugs (a) and one other (b)
     at m = 0.5, 1, 2
+    basic f_v over time plots as shown in the paper
+    NOTE: only implemented for an exclusive interaction
+    NOTE 2: normalization effect targets for normalized plots are hardcoded further down
     """
 
     assert optimization_target in ['min', 'xauc']
@@ -524,15 +538,17 @@ def alltrace(adrugs, bdrug, mutant, dataset, interaction_mode, optimization_targ
     # dataset = 0
     # mutant = 'T315I'
 
+    # calculate for each value of hill coefficient m
     for k, m in enumerate([0.5, 1, 2]):
 
         fig, axs = plt.subplots()
         fig.set_size_inches(5.5, 4)
 
-        occupied = {}
+        occupied = {} # for keeping track vertical offsets when printing dosing labels later
 
         names = []
 
+        # calculate for each separate drug
         # for i, adrug in enumerate(['intermediate/imatinib.toml', 'intermediate/nilotinib.toml',
                                    # 'intermediate/dasatinib.toml', 'intermediate/bosutinib.toml']):
         for i, adrug in enumerate(adrugs):
@@ -575,17 +591,11 @@ def alltrace(adrugs, bdrug, mutant, dataset, interaction_mode, optimization_targ
             best_offsets = [0.0, 0.0, 0.0]#{'as': 0.0, 'ax': 0.0}
             best_effect = [999, 999, 999]
 
-
+            # find the optimal offset
             for b_offset in offsetspace:
                 drug_b['offset'] = b_offset
                 conc_a = get_conc(drug_a, t)
                 conc_b = get_conc(drug_b, t)
-                # vfte_m = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m)
-                # vfte_w = 1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m)
-
-                # dvel = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m) - \
-                #        1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m)
-                # pl = 1/(1 + (conc_a/cell2[0])**m) - 1/(1 + (conc_a/cell1[0])**m)
 
                 rvel = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m) / \
                        (1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m))
@@ -602,16 +612,10 @@ def alltrace(adrugs, bdrug, mutant, dataset, interaction_mode, optimization_targ
 
             print(best_offsets)
 
+            # we have the best offset, calculate curve we will plot
             drug_b['offset'] = best_offsets[k]
             conc_a = get_conc(drug_a, t)
             conc_b = get_conc(drug_b, t)
-
-            vfte_m = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m)
-            vfte_w = 1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m)
-
-            dvel = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m) - \
-                    1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m)
-            pl = 1/(1 + (conc_a/cell2[0])**m) - 1/(1 + (conc_a/cell1[0])**m)
 
             rvel = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m) / \
                     (1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m))
@@ -678,6 +682,7 @@ def alltrace(adrugs, bdrug, mutant, dataset, interaction_mode, optimization_targ
 
 
     # version with separately normalized doses
+    # in practice this is a repeat of the above plot
 
     # bdrug = 'intermediate/axitinib.toml'
     # dataset = 0
@@ -710,6 +715,9 @@ def alltrace(adrugs, bdrug, mutant, dataset, interaction_mode, optimization_targ
             print(drug_a['native'])
             print(drug_b['native'])
 
+            # the difference is right here
+            # NOTE change this for investigating alternate drugs where this normalization
+            # might be inappropriate
             normalize_effect_single(drug_a, 0.1, m=m)
             normalize_effect_single(drug_b, 0.95, m=m)
             print(drug_a['name'], m, drug_a['D'], get_effect_single(drug_a, m=m))
@@ -747,12 +755,6 @@ def alltrace(adrugs, bdrug, mutant, dataset, interaction_mode, optimization_targ
                 normalize_effect_single(drug_b, 0.95, m=m)
                 conc_a = get_conc(drug_a, t)
                 conc_b = get_conc(drug_b, t)
-                # vfte_m = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m)
-                # vfte_w = 1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m)
-
-                # dvel = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m) - \
-                #        1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m)
-                # pl = 1/(1 + (conc_a/cell2[0])**m) - 1/(1 + (conc_a/cell1[0])**m)
 
                 rvel = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m) / \
                        (1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m))
@@ -777,13 +779,6 @@ def alltrace(adrugs, bdrug, mutant, dataset, interaction_mode, optimization_targ
 
             conc_a = get_conc(drug_a, t)
             conc_b = get_conc(drug_b, t)
-
-            vfte_m = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m)
-            vfte_w = 1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m)
-
-            dvel = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m) - \
-                    1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m)
-            pl = 1/(1 + (conc_a/cell2[0])**m) - 1/(1 + (conc_a/cell1[0])**m)
 
             rvel = 1/(1 + (conc_a/cell2[0] + conc_b/cell2[1])**m) / \
                     (1/(1 + (conc_a/cell1[0] + conc_b/cell1[1])**m))
@@ -826,9 +821,8 @@ def alltrace(adrugs, bdrug, mutant, dataset, interaction_mode, optimization_targ
 
         full_lines = mlines.Line2D([], [], color='k', linestyle='-', linewidth=1.0)
         dashed_lines = mlines.Line2D([], [], color='k', linestyle='--', linewidth=1.0)
-        # markers = [mlines.Line2D([], [], color=color, linestyle='-', linewidth=1.0) for color in PALETTE_4]
-        # markers = [mlines.Line2D([], [], color=color, linestyle='none', marker='.', markersize=15.0, linewidth=1.0) for color in PALETTE_4]
-        markers = [mlines.Line2D([], [], color=color, linestyle='none', marker='.', markersize=15.0, linewidth=1.0) for color in PALETTE_4[:len(adrugs)]]
+        markers = [mlines.Line2D([], [], color=color, linestyle='none', marker='.', markersize=15.0, linewidth=1.0)
+                   for color in PALETTE_4[:len(adrugs)]]
 
         pos11 = axs.get_position()
         print(pos11)

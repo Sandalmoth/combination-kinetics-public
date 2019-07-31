@@ -18,6 +18,10 @@ from scipy.optimize import minimize
 import toml
 
 
+# there is some code repetition below, as the data-generating 'make' and table producing 'bigtable'
+# were written separately, and function interfaces differed slightly
+
+
 @click.group()
 def main():
     """
@@ -36,16 +40,6 @@ def get_conc(drug, time):
            (np.exp(-drug['ke']*t_reduced)/(1 - np.exp(-drug['ke']*drug['tau'])) - \
             np.exp(-drug['ka']*t_reduced)/(1 - np.exp(-drug['ka']*drug['tau'])))
     return np.roll(conc, int(drug['offset']/(drug['tau']*drug['repeats'])*len(time)))
-
-
-def normalize_auc(drug, resolution=1000):
-    """
-    Normalize drug dose such that the AUC = 1
-    """
-    time = np.linspace(0, drug['tau']*drug['repeats'], resolution)
-    conc = get_conc(drug, time)
-    auc = simps(conc, time)
-    drug['D'] /= auc
 
 
 def get_effect_single_const(drug, dose=None, ic=1, m=1):
@@ -103,8 +97,6 @@ def normalize_effect_dual_const(drug1, drug2, method, effect_target, ratio, ic1=
                    0.1, method='nelder-mead', options={'xtol': xtol, 'disp': False})
     drug1['D'] = res.x[0]*ratio
     drug2['D'] = res.x[0]*(1 - ratio)
-
-
 
 
 def get_effect2(drug1, drug2, method, dose1=None, dose2=None, ic1=1, ic2=1, m=1, resolution=1000):
@@ -270,6 +262,9 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
         # first time, construct the multipage pdf
         pdf_out = PdfPages(outfile)
 
+    # for each value of the hill coefficent m:
+    #   find the dose that creates a given effect target
+    #   optimized for adminstration offset and drug ratio
     for m in [0.5, 1, 2]:
 
         drug_a = toml.load(adrug)
@@ -279,10 +274,6 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
         normalize_effect(drug_b, effect_target, m=m)
 
         fig, axs = plt.subplots(ncols=3)
-        # fig.set_size_inches(10, 3)
-        # fig.set_size_inches(6, 1.8)
-        # fig.set_size_inches(9, 2.7)
-        # fig.set_size_inches(9, 2.75)
         fig.set_size_inches(8.5, 2.4)
 
         ratio_resolution = 21
@@ -291,12 +282,6 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
         phase = np.linspace(0, 1, phase_resolution + 1)
         ratio, dsum = optimize_reduction(drug_a, drug_b, 'e', effect_target,
                                          ratio_resolution, phase_resolution, m=m)
-        # axs[0].plot(ratio, np.min(dsum, axis=1), color='grey')
-        # axs[0].plot(ratio, dsum[:, 0], color='grey', linestyle='--')
-        # axs[1].scatter(ratio, np.argmin(dsum, axis=1)/dsum.shape[1],
-        #                color='grey', facecolor='grey', label='Nonexclusive')
-        # phase_effect = dsum[np.where(dsum == dsum.min())[0][0], :]
-        # axs[2].plot(phase, np.append(phase_effect, phase_effect[0]), color='grey')
         color = (2/3, 2/3, 2/3)
         axs[0].plot(ratio, np.min(dsum, axis=1), color=color)
         axs[0].plot(ratio, dsum[:, 0], color=color, linestyle='--')
@@ -307,13 +292,8 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
 
         ratio, dsum = optimize_reduction(drug_a, drug_b, 'n', effect_target,
                                          ratio_resolution, phase_resolution, m=m)
-        # axs[0].plot(ratio, np.min(dsum, axis=1), color='k')
-        # axs[0].plot(ratio, dsum[:, 0], color='k', linestyle='--')
-        # axs[1].scatter(ratio, np.argmin(dsum, axis=1)/dsum.shape[1],
-        #                marker='.', color='k', label='Exclusive')
-        # phase_effect = dsum[np.where(dsum == dsum.min())[0][0], :]
-        # axs[2].plot(phase, np.append(phase_effect, phase_effect[0]), color='k')
         color = (0, 0, 0)
+
         axs[0].plot(ratio, np.min(dsum, axis=1), color=color)
         axs[0].plot(ratio, dsum[:, 0], color=color, linestyle='--')
         axs[1].scatter(ratio, np.argmin(dsum, axis=1)/dsum.shape[1],
@@ -328,8 +308,6 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
         axs[0].set_xticks([0, 0.5, 1])
         axs[0].set_xticklabels(['100% ' + drug_a['name'], '', '100% ' + drug_b['name']])
 
-        # axs[1].set_ylabel('Best administration phase angle')
-        # axs[1].set_ylabel('Best ' + drug_b['name'][:2].upper() + ' administration delay')
         axs[1].set_ylabel('Best ' + drug_b['name'] + '\nadministration delay')
         axs[1].set_xlabel('Drug ratio')
         axs[1].set_xticks([0, 0.5, 1])
@@ -337,10 +315,7 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
         axs[1].set_ylim(-.05, 1.05)
         axs[1].set_yticks([0, 0.25, 0.5, 0.75, 1.0])
         axs[1].set_yticklabels([int(24*x) for x in axs[1].get_yticks()])
-        # axs[1].legend()
 
-        # axs[2].set_xlabel('Administration phase angle')
-        # axs[2].set_xlabel(drug_b['name'][:2].upper() + ' administration delay')
         axs[2].set_xlabel(drug_b['name'] + ' administration delay')
         axs[2].set_ylabel('Dose reduction\nfactor of best ratio')
         axs[2].set_xlim(-.05, 1.05)
@@ -356,7 +331,6 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
             plt.show()
 
     # Mutation effect at reduction table
-
     drug_a = toml.load(adrug)
     drug_b = toml.load(bdrug)
 
@@ -386,9 +360,6 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
                 # solve
                 # 1 = cx/a + c(1-x)/b + c²x(1-x)/(a*b)
                 # for c to find the ic50 given this drug ratio
-                # c = (±√((ax - a - bx)² - 4ab(x² - x)) + a(-x) + a + bx) / (2(x² - x))
-                #   = (±√((ax - a - bx)² - 4ab(x² - x)) - ax + a + bx) / (2(x² - x))
-                # shouldn't it be this?
                 # c = (±√(a²(x - 1)² - 6ab(x² - x) + b²x²) - ax + a + bx)/(2(x² - x))
                 # redefinitions to reduce verbosity
                 a = ic_relative_a
@@ -396,7 +367,6 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
                 x = best_ratio
 
                 z = x**2 - x
-                # s = np.sqrt((a*x - a - b*x)**2 - 4*a*b*z)
                 s = np.sqrt(a**2 *(x - 1)**2 - 6*a*b*z + b**2 *x**2)
 
                 ic_effective_1 = (s - a*x + a + b*x) / (2*z)
@@ -464,6 +434,7 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
     print(ic_table)
     print(ic_table.shape)
 
+    # save calculated ic50s in a table for later use
     if csvfile is not None:
         fieldnames = ['drug_a', 'drug_b', 'ratio', 'mutant', 'method', 'ic50']
         with open(csvfile, 'a') as csv_handle:
@@ -634,6 +605,13 @@ def bigtable(tablefile, outfile):
     shape_table = deepcopy(ic_table)
 
     # calculate the non-linear effect for each position in the table
+    # basically for each drug combination:
+    #   normalize effect of each drug separately to given effect target
+    #   calculate effectiveness against mutant at that drug
+    #   normalize effect of combination to given effect target
+    #   calculate effectiveness against mutant of combination
+    #   if effect of combination is worse (f_v is higher) than for either drugs alone
+    #     save in table and mark with red box in figure
     # adrug = 'intermediate/asciminib.toml'
     adrug = adrug_filename
     # for i, bdrug in enumerate(['intermediate/bosutinib.toml', 'intermediate/dasatinib.toml', 'intermediate/imatinib.toml', 'intermediate/nilotinib.toml', 'intermediate/ponatinib.toml']):
@@ -687,7 +665,6 @@ def bigtable(tablefile, outfile):
         for j in range(len(mutant_names)):
             shape_table[j][i] = 1.0 if single_effects[j] > dual_effects[j] else dual_effects[j]/single_effects[j]
 
-    # plot 2
     print(ic_table)
     print(shape_table)
     print((shape_table > 1) * 1.0)
@@ -695,11 +672,6 @@ def bigtable(tablefile, outfile):
     if outfile is not None:
         # first time, construct the multipage pdf
         pdf_out = PdfPages(outfile)
-
-    # plot 1
-    print(ic_table)
-    print(shape_table)
-    print((shape_table > 1) * 1.0)
 
     fig, axs = plt.subplots()
     fig.set_size_inches(n_combos*1.5, n_mutants/2)
