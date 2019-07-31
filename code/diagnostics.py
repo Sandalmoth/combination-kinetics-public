@@ -519,7 +519,7 @@ def alltrace(adrugs, bdrug, mutant, dataset, interaction_mode, optimization_targ
     at m = 0.5, 1, 2
     basic f_v over time plots as shown in the paper
     NOTE: only implemented for an exclusive interaction
-    NOTE 2: normalization effect targets for normalized plots are hardcoded further down
+    NOTE 2: normalization effect targets are in drug data files (specific_effect_target)
     """
 
     assert optimization_target in ['min', 'xauc']
@@ -716,10 +716,8 @@ def alltrace(adrugs, bdrug, mutant, dataset, interaction_mode, optimization_targ
             print(drug_b['native'])
 
             # the difference is right here
-            # NOTE change this for investigating alternate drugs where this normalization
-            # might be inappropriate
-            normalize_effect_single(drug_a, 0.1, m=m)
-            normalize_effect_single(drug_b, 0.95, m=m)
+            normalize_effect_single(drug_a, drug_a['specific_effect_target'], m=m)
+            normalize_effect_single(drug_b, drug_b['specific_effect_target'], m=m)
             print(drug_a['name'], m, drug_a['D'], get_effect_single(drug_a, m=m))
             print(drug_b['name'], m, drug_b['D'], get_effect_single(drug_b, m=m))
 

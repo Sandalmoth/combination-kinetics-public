@@ -254,7 +254,8 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
     outfile - if present save all plots as pdf to this file
     """
 
-    effect_target = 0.1
+    # effect_target = 0.1
+
 
     # optimal ratio and phase plots
 
@@ -269,6 +270,9 @@ def make(adrug, bdrug, dataset, mutants, outfile, csvfile):
 
         drug_a = toml.load(adrug)
         drug_b = toml.load(bdrug)
+
+        assert (drug_a['specific_effect_target'] == drug_b['specific_effect_target'])
+        effect_target = drug_a['specific_effect_target']
 
         normalize_effect(drug_a, effect_target, m=m)
         normalize_effect(drug_b, effect_target, m=m)
@@ -618,6 +622,9 @@ def bigtable(tablefile, outfile):
     for i, bdrug in enumerate(bdrug_filenames):
         drug_a = toml.load(adrug)
         drug_b = toml.load(bdrug)
+
+        assert (drug_a['specific_effect_target'] == drug_b['specific_effect_target'])
+        opt_target = drug_a['specific_effect_target']
 
         print(drug_a['name'], drug_b['name'])
 
