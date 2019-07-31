@@ -19,7 +19,9 @@ rule all:
         "results/figures/dasatinib-asciminib-ic50.pdf",
         "results/figures/bosutinib-asciminib-ic50.pdf",
         "results/figures/ponatinib-asciminib-ic50.pdf",
-        "results/figures/ic50-combos.pdf"
+        "results/figures/ic50-combos.pdf",
+        "results/figures/as-combos-min.pdf",
+        "results/figures/as-combos-xauc.pdf"
 
 
 rule make_empty_table:
@@ -142,4 +144,19 @@ rule big_table:
         python3 code/reduction.py bigtable \
             -t {params.table_path} \
             -o {output}
+        """
+
+
+rule triple:
+    input:
+        "intermediate/bosutinib.toml",
+        "intermediate/asciminib.toml",
+        "intermediate/axitinib.toml"
+    output:
+        "results/figures/as-combos-{target}.pdf"
+    shell:
+        """
+        python3 code/triple.py as_combos \
+            --save {output} \
+            -t {wildcards.target}
         """
