@@ -227,10 +227,15 @@ def as_combos(save, optimization_target):
                     print(best_offsets, m)
 
 
-    print(best_offsets)
+    print('best:', best_offsets)
     asboax_best_offsets = best_offsets[:]
     for i in range(3):
-        asboax_best_offsets[i]['bo'] = 0.0
+        asboax_best_offsets[i]['bo'] = 1 - asboax_best_offsets[i]['as']
+        if asboax_best_offsets[i]['bo'] == 1:
+            asboax_best_offsets[i]['bo'] = 0
+        asboax_best_offsets[i]['ax'] -= asboax_best_offsets[i]['as']
+        asboax_best_offsets[i]['as'] = 0.0
+    print('best shifted:', best_offsets)
 
     markers = []
 
@@ -242,6 +247,7 @@ def as_combos(save, optimization_target):
 
         markers.append(mlines.Line2D([], [], color=color, linestyle='-', linewidth=1.0))
 
+        drug_bo['offset'] = best_offsets[k]['bo']
         drug_as['offset'] = best_offsets[k]['as']
         drug_ax['offset'] = best_offsets[k]['ax']
 
@@ -382,7 +388,6 @@ def as_combos(save, optimization_target):
     print(asboax_best_offsets)
     print(asax_best_offsets)
 
-
     for k, m in enumerate([0.5, 1, 2]):
         fig, axs = plt.subplots()
         fig.set_size_inches(5.5, 4)
@@ -403,51 +408,51 @@ def as_combos(save, optimization_target):
         yoff = 0
         xoff = asboax_best_offsets[k]['bo']
         if xoff in occupied:
-            yoff += 0.04*occupied[xoff]
+            yoff += 0.035*occupied[xoff]
             occupied[xoff] += 1
         else:
             occupied[xoff] = 1
-        axs.text(xoff, 1.03 + yoff, 'BO', transform=axs.transAxes, size=8,
+        axs.text(xoff, 1.03 + yoff, 'BO', transform=axs.transAxes, size=7,
                  color=PALETTE_4[2],
                  verticalalignment='center', horizontalalignment='center')
         yoff = 0
         xoff = asboax_best_offsets[k]['as']
         if xoff in occupied:
-            yoff += 0.04*occupied[xoff]
+            yoff += 0.035*occupied[xoff]
             occupied[xoff] += 1
         else:
             occupied[xoff] = 1
-        axs.text(xoff, 1.03 + yoff, 'AS', transform=axs.transAxes, size=8,
+        axs.text(xoff, 1.03 + yoff, 'AS', transform=axs.transAxes, size=7,
                  color=PALETTE_4[2],
                  verticalalignment='center', horizontalalignment='center')
         yoff = 0
         xoff = asboax_best_offsets[k]['ax']
         if xoff in occupied:
-            yoff += 0.04*occupied[xoff]
+            yoff += 0.035*occupied[xoff]
             occupied[xoff] += 1
         else:
             occupied[xoff] = 1
-        axs.text(xoff, 1.03 + yoff, 'AX', transform=axs.transAxes, size=8,
+        axs.text(xoff, 1.03 + yoff, 'AX', transform=axs.transAxes, size=7,
                  color=PALETTE_4[2],
                  verticalalignment='center', horizontalalignment='center')
         yoff = 0
         xoff = asax_best_offsets[k]['as']
         if xoff in occupied:
-            yoff += 0.04*occupied[xoff]
+            yoff += 0.035*occupied[xoff]
             occupied[xoff] += 1
         else:
             occupied[xoff] = 1
-        axs.text(xoff, 1.03 + yoff, 'AS', transform=axs.transAxes, size=8,
+        axs.text(xoff, 1.03 + yoff, 'AS', transform=axs.transAxes, size=7,
                  color=PALETTE_4[0],
                  verticalalignment='center', horizontalalignment='center')
         yoff = 0
         xoff = asax_best_offsets[k]['ax']
         if xoff in occupied:
-            yoff += 0.04*occupied[xoff]
+            yoff += 0.035*occupied[xoff]
             occupied[xoff] += 1
         else:
             occupied[xoff] = 1
-        axs.text(xoff, 1.03 + yoff, 'AX', transform=axs.transAxes, size=8,
+        axs.text(xoff, 1.03 + yoff, 'AX', transform=axs.transAxes, size=7,
                  color=PALETTE_4[0],
                  verticalalignment='center', horizontalalignment='center')
 
