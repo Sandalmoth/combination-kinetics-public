@@ -30,3 +30,10 @@ Hardcoded plotting function for the triple combination of Asciminib, Axitinib an
 
 __plots/add-compilation.py__  
 Utility code that assembles drug info file (with kinetics information) and IC50's from a csv.
+
+---
+
+## Experiment analysis
+Raw data and analysis in the form of a jupyter notebook is available in the expeirment folder. The notebook requires R and the rethinking package
+
+https://github.com/rmcelreath/rethinking
